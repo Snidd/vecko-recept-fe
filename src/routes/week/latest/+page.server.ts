@@ -1,4 +1,7 @@
 import type { Actions } from './$types';
+import { DINOIMG_URL } from '$env/static/private';
+import { VECKO_MENY_API_URL } from '$env/static/private';
+import axios from 'axios';
 
 export const actions = {
 	uploadpicture: async (event) => {
@@ -7,23 +10,28 @@ export const actions = {
 		//console.log(await event.request.formData());
 
 		const formData = await event.request.formData();
+
+		console.log('FormData received:', formData);
+
 		const recipe_id = formData.get('recipe_id')?.toString();
-		if (!recipe_id) {
-			return { success: false, message: 'Recipe ID is required' };
-		}
-		const result = await fetch('http://localhost:8080/api/image', {
-			method: 'POST',
-			body: formData
-		});
-		if (!result.ok) {
+
+		const upload_url = `${DINOIMG_URL}/upload`;
+
+		// Use axios to upload the image, since node fetch does not add the CRLF at the end of the file
+		const result = await axios.post(upload_url, formData);
+
+		//If the response is conflict, it means the image already exists and we need to get that image URL and use it.
+		if (result.status !== 200) {
+			console.error({ result });
 			console.error('Failed to upload image:', result.statusText);
 			return { success: false, message: result.statusText };
 		}
-		const response = (await result.json()) as ImageApiResult;
+		const response = result.data as ImageApiResult;
 		console.log('Image API response:', response);
 
-		const image_url = `/img/${response.image_id}`;
-		fetch(`http://localhost:8080/api/recipe/${recipe_id}`, {
+		const image_url = response.image_url;
+
+		fetch(`${VECKO_MENY_API_URL}/api/recipe/${recipe_id}`, {
 			method: 'PUT',
 			body: JSON.stringify({ image_url: image_url }),
 			headers: {
@@ -35,8 +43,8 @@ export const actions = {
 	}
 } satisfies Actions;
 
-export type ImageApiResult = {
-	image_id: number;
+type ImageApiResult = {
+	image_url: string;
 	// TODO add more fields as needed
 };
 

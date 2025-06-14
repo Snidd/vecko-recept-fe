@@ -8,8 +8,4 @@
 	let { data }: PageProps = $props();
 </script>
 
-<main class="flex h-dvh flex-col">
-	{#each data.recipes as recipe (recipe.id)}
-		<RecipeRow {recipe} />
-	{/each}
-</main>
+<main class="flex h-dvh flex-col">Empty</main>
